@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-31 22:53:44
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-04 23:16:49
+* @Last Modified time: 2018-08-04 23:41:56
 */
 /**
 RFC793
@@ -55,21 +55,23 @@ func (tcp TCP) Listen() (*chan TCP, error) {
 
     tcpchan := make(chan TCP, 2)
 
-    for {
-        ip4 := <-*ipv4chan
-        // log.Println(ip4.Protocol)
-        if ip4.Protocol != 6 {
-            continue
-        }
+    go func() {
+        for {
+            ip4 := <-*ipv4chan
+            // log.Println(ip4.Protocol)
+            if ip4.Protocol != 6 {
+                continue
+            }
 
-        tcpdata, err := tcp.Format(ip4.Payload)
-        // log.Println(tcpdata)
-        if err != nil {
-            log.Println(err)
+            tcpdata, err := tcp.Format(ip4.Payload)
+            // log.Println(tcpdata)
+            if err != nil {
+                log.Println(err)
+            }
+            // log.Println(tcpdata.Payload)
+            tcpchan <- tcpdata
         }
-        log.Println(tcpdata.Payload)
-        tcpchan <- tcpdata
-    }
+    }()
 
     return &tcpchan, nil
 }

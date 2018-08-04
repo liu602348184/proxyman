@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-07-29 22:46:12
+* @Last Modified time: 2018-08-05 02:19:39
 */
 package network
 /**
@@ -56,11 +56,21 @@ func (e Ethernet) Listen() (*chan Ethernet, error) {
 func GetHwAddr(ethAtp string) (net.HardwareAddr, error) {
     ifi, err := net.InterfaceByName(ethAtp)
      
-     if err !=  nil {
+    if err !=  nil {
        return nil, err
     }
     
     return ifi.HardwareAddr, nil   
+}
+
+func GetMTU(ethAtp string) (int, error) {
+    ifi, err := net.InterfaceByName(ethAtp)
+     
+    if err !=  nil {
+       return 0, err
+    }
+    
+    return ifi.MTU, nil   
 }
 //前导字节和尾部crc签名将被过滤
 func (e Ethernet) Format(b []byte) (Ethernet){
