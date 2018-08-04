@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-07-31 23:18:23
+* @Last Modified time: 2018-08-04 23:13:38
 */
 /**
 RFC-791
@@ -150,8 +150,8 @@ func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
         return IPV4{}, errors.New("bad ip package")
     }
 
-   sceip := b[12: 16]
-   dstip := b[16: 20]
+    sceip := b[12: 16]
+    dstip := b[16: 20]
 
     ip4 := IPV4{
         Version: ver,
@@ -164,7 +164,7 @@ func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
         TTL: ttl,
         Protocol: protocol,
         Checksum: checksum,
-        Payload: b[(hlen - 1) : length],
+        Payload: b[hlen : length],
         // SceIP: sceip,
         // DstIP: dstip,
     }

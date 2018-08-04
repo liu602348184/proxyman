@@ -36,6 +36,6 @@ func main()  {
     for{
         a := <- *tcpchan
         // _ = a
-        fmt.Println(a)
+        fmt.Println(a.Payload)
     }
 }
