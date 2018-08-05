@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-31 22:53:44
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-04 23:41:56
+* @Last Modified time: 2018-08-05 20:27:15
 */
 /**
 RFC793
@@ -30,6 +30,12 @@ type Control struct {
     FIN bool
 }
 
+type Option struct {
+    Kind uint8
+    Length uint8
+    Value []byte
+}
+
 type TCP struct {
     ScePort uint16
     DstPort uint16
@@ -40,7 +46,7 @@ type TCP struct {
     Window uint16
     Checksum uint16
     UrgentPointer uint16
-    Options []byte
+    Options []Option
     Payload []byte
     IPV4 IPV4
 }
@@ -95,6 +101,23 @@ func(tcp TCP) Format (b []byte)  (TCP, error)  {
     window := binary.BigEndian.Uint16(b[16: 18])
     checksum := binary.BigEndian.Uint16(b[18: 20])
     urg_pointer := binary.BigEndian.Uint16(b[20: 22])
+    optionlen := hlen - 20
+    // log.Println(optionlen)
+    var options []Option
+    var err error
+
+    if optionlen > 0 {
+        options, err = getOptions(b[20: hlen])
+        
+        if err != nil {
+            log.Println(err)
+        }
+
+        // log.Println("--------------test--------------")
+        // log.Fatal(options)
+        // log.Println(options)
+    }
+
     payload := b[hlen:]
    
     control := Control{
@@ -116,8 +139,44 @@ func(tcp TCP) Format (b []byte)  (TCP, error)  {
         Window: window,
         Checksum: checksum,
         UrgentPointer: urg_pointer,
+        Options: options,
         Payload: payload,
     }
 
     return tcpdata, nil
+}
+
+func getOptions(b []byte) ([]Option, error) {
+    var options []Option
+
+    for {
+        kind := uint8(b[0])
+        b = b[1:]
+        length := uint8(b[0])
+        b = b[1:]
+        l := uint8(len(b))
+        length =  length - 2
+        var value []byte
+
+        if l == length {
+            value = b[0:]
+        } else {
+            value = b[0:length]
+            b = b[length: ]
+        }
+
+
+        option := Option{
+            Kind: kind,
+            Length: length + 2,
+            Value: value,
+        }
+
+        options = append(options, option)
+
+        if l == length {
+            break
+        }
+    }
+    return options, nil
 }

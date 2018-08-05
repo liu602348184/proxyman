@@ -33,8 +33,8 @@ func main()  {
     // fmt.Println(eth)
     // fmt.Println(ethchan)
     // var bytes  []byte
-    mtu, _ := network.GetMTU("eth0")
-    fmt.Println(mtu)
+    // mtu, _ := network.GetMTU("eth0")
+    // fmt.Println(mtu)
     for{
         a := <- *tcpchan
         // _ = a
