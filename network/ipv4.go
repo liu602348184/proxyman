@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-04 23:13:38
+* @Last Modified time: 2018-08-07 01:14:51
 */
 /**
 RFC-791
@@ -26,8 +26,8 @@ https://tools.ietf.org/html/rfc791
 package network
 import(
    // "log"
-   // "fmt"
-   "errors"
+   "fmt"
+    "errors"
     "encoding/binary"
 )
 //前三比特已经废弃最后一位设置为0
@@ -53,8 +53,8 @@ type Flag struct {
 }
 
 type IPV4 struct {
-    Version uint        //ipv4 0x4
-    HeaderLen uint
+    Version uint8        //ipv4 0x4
+    HeaderLen uint8
     TOS TOS
     Length uint16
     Id uint16  // IP 报文的唯一id，分片报文的id 相同，便于进行重组。 
@@ -98,8 +98,8 @@ func (ipv4 IPV4) Listen() (*chan IPV4, error){
 func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
     // version and length of header
     ver_hlen := b[0]
-    ver := uint(ver_hlen >> 4 & 0x0F)
-    hlen := uint(ver_hlen & 0x0F)
+    ver := uint8(ver_hlen >> 4 & 0x0F)
+    hlen := uint8(ver_hlen & 0x0F)
 
     if ver != 4 {
         return IPV4{}, errors.New("the version of ip must be ipv4")
@@ -198,4 +198,77 @@ func checksumFunc(header []byte)  uint16 {
     }
 
     return ^uint16(sum)
+}
+/*
+    MinDalay bool
+    MaxIO bool
+    MaxReliability bool
+    MinCost bool
+*/
+func (ipv4 IPV4) ToBytes() ([]byte){
+    var bytes []byte
+    ver_hlen := byte((ipv4.Version << 4 & 0xF0) | ((ipv4.HeaderLen / 4) & 0x0F))
+    tos := ipv4.TOS
+    tos_b  := uint8(0)
+    
+    if tos.MinDalay {
+        tos_b = 1 << 4
+    }
+
+    if tos.MaxIO {
+        tos_b = tos_b | (1 << 3)
+    }
+
+    if tos.MaxReliability {
+        tos_b = tos_b| (1 << 2)
+    }
+
+    if tos.MinCost {
+        tos_b = tos_b | (1 << 1)
+    }
+
+    var len_b [2]byte
+    binary.BigEndian.PutUint16(len_b[:], ipv4.Length)
+    var id_b [2]byte
+    binary.BigEndian.PutUint16(id_b[:], ipv4.Id)
+
+    flag := ipv4.Flag
+    offset := ipv4.Offset
+    flag_offset := uint16(0)
+
+    if flag.DF {
+        flag_offset = 1 << 14
+    }
+
+    if flag.MF {
+        flag_offset = flag_offset | (1 << 13)
+    }
+
+    flag_offset = flag_offset | offset
+    var flag_offset_b [2]byte
+    binary.BigEndian.PutUint16(flag_offset_b[:], flag_offset)
+    ttl := byte(ipv4.TTL)
+    protocol := byte(ipv4.Protocol)
+    checksum := ipv4.Checksum
+    var checksum_b [2]byte
+    binary.BigEndian.PutUint16(checksum_b[:], checksum) 
+    sceip := ipv4.SceIP
+    dstip := ipv4.DstIP
+
+    bytes = append(bytes, ver_hlen)
+    bytes = append(bytes, tos_b)
+    bytes = append(bytes, len_b[:]...)
+    bytes = append(bytes, id_b[:]...)
+    bytes = append(bytes, flag_offset_b[:]...)
+    bytes = append(bytes, ttl)
+    bytes = append(bytes, protocol)
+    bytes = append(bytes, checksum_b[:]...)
+    bytes = append(bytes, sceip[:]...)
+    bytes = append(bytes, dstip[:]...)
+    return bytes
+}
+
+func (ipv4 IPV4) Send(payload []byte) {
+    data := ipv4.ToBytes()
+    fmt.Println(data)
 }

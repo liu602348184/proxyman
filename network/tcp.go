@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-31 22:53:44
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-05 20:27:15
+* @Last Modified time: 2018-08-05 20:35:52
 */
 /**
 RFC793
@@ -164,7 +164,6 @@ func getOptions(b []byte) ([]Option, error) {
             value = b[0:length]
             b = b[length: ]
         }
-
 
         option := Option{
             Kind: kind,

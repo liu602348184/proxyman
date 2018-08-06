@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-05 14:07:01
+* @Last Modified time: 2018-08-06 23:47:01
 */
 package network
 /**
@@ -10,7 +10,7 @@ Ethernet II frames
 **/
 import (
     "net"
-    _"fmt"
+    "fmt"
     "log"
     "encoding/binary"
 )
@@ -22,6 +22,11 @@ type Ethernet struct {
     Payload []byte
     CRC uint32
     Raw *Raw
+}
+var MTU int
+
+func init(){
+    MTU, _ = GetMTU("eth0")
 }
 
 func (e Ethernet) Listen() (*chan Ethernet, error) {
@@ -82,4 +87,26 @@ func (e Ethernet) Format(b []byte) (Ethernet){
     }
 
     return eth
+}
+
+func (e Ethernet) ToBytes() ([]byte) {
+    var eth_bytes []byte
+    dmac := []byte{e.DstMac[0], e.DstMac[1], e.DstMac[2], e.DstMac[3], e.DstMac[4], e.DstMac[5]}
+    smac :=  []byte{e.SceMac[0], e.SceMac[1], e.SceMac[2], e.SceMac[3], e.SceMac[4], e.SceMac[5]}
+    eth_bytes = append(eth_bytes, dmac[:]...)
+    eth_bytes = append(eth_bytes, smac[:]...)
+    eth_type := make([]byte, 2)
+    binary.BigEndian.PutUint16(eth_type, e.EtherType)
+    eth_bytes = append(eth_bytes, eth_type[:]...)
+    eth_bytes = append(eth_bytes, e.Payload[:]...)
+    eth_len := MTU - len(eth_bytes)
+    data := make([]byte, eth_len)
+    eth_bytes = append(eth_bytes, data[:]...)
+    return eth_bytes
+}
+
+func (e Ethernet) Send(payload []byte) {
+    e.Payload = payload
+    data := e.ToBytes()
+    fmt.Println(data)
 }

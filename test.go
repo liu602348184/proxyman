@@ -1,7 +1,7 @@
 package main
 
 import (
-    "fmt"
+    // "fmt"
     // "net"
     "log"
     // "reflect"
@@ -25,19 +25,33 @@ func main()  {
     // binary.BigEndian.PutUint16(net_type, 0x0800)
     // int_type := binary.BigEndian.Uint16(net_type)
     // fmt.Println(int(htons(uint16(0x0800))))
-    tcp := network.TCP{}
-    tcpchan, err := tcp.Listen()
-    if err != nil {
-        log.Fatal(err)
-    }
+    // tcp := network.TCP{}
+    // tcpchan, err := tcp.Listen()
+    // if err != nil {
+    //     log.Fatal(err)
+    // }
     // fmt.Println(eth)
     // fmt.Println(ethchan)
     // var bytes  []byte
     // mtu, _ := network.GetMTU("eth0")
     // fmt.Println(mtu)
-    for{
-        a := <- *tcpchan
-        // _ = a
-        fmt.Println(a.Payload)
+    // for{
+    //     a := <- *tcpchan
+    //     // _ = a
+    //     fmt.Println(a.Payload)
+    // }
+
+    ip := network.IPV4{}
+    ipchan, err := ip.Listen()
+    
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    for {
+        a := <-*ipchan
+        test := []byte{0x00, 0x01}
+        a.Send(test)
+        // fmt.Println(a)
     }
 }
