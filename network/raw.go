@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-05 13:33:26
+* @Last Modified time: 2018-08-12 04:18:45
 */
 package network
 
@@ -11,6 +11,7 @@ import(
     // "fmt"
     // "net"
     "syscall"
+    // "binary.BigEndian"
 )
 
 const(
@@ -22,7 +23,7 @@ type Raw struct {
 }
 
 func (r *Raw) Listen() (*chan []byte,   error ){
-    fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(Htons(uint16(TYPE_IP)))) 
+    fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(Htons(uint16(syscall.ETH_P_ALL)))) 
 
     if err != nil {
         return nil, err

@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-07 01:14:51
+* @Last Modified time: 2018-08-12 04:27:31
 */
 /**
 RFC-791
@@ -25,9 +25,10 @@ https://tools.ietf.org/html/rfc791
 */
 package network
 import(
-   // "log"
-   "fmt"
+   "log"
+    _"fmt"
     "errors"
+    "syscall"
     "encoding/binary"
 )
 //前三比特已经废弃最后一位设置为0
@@ -82,9 +83,16 @@ func (ipv4 IPV4) Listen() (*chan IPV4, error){
     go func() {
         for{
             eth := <- *ethchan
+            
+            if syscall.ETH_P_IP != eth.EtherType {
+                continue
+            }
+
             ipdata, ferr := ipv4.Format(eth.Payload)
+            ipdata.Ethernet = eth
 
             if ferr != nil {
+                log.Println(ferr)
                 continue
             }
             // _ = ipdata
@@ -265,10 +273,13 @@ func (ipv4 IPV4) ToBytes() ([]byte){
     bytes = append(bytes, checksum_b[:]...)
     bytes = append(bytes, sceip[:]...)
     bytes = append(bytes, dstip[:]...)
+    bytes = append(bytes, ipv4.Options[:]...)
+
     return bytes
 }
 
 func (ipv4 IPV4) Send(payload []byte) {
     data := ipv4.ToBytes()
-    fmt.Println(data)
+    ipv4.Ethernet.Send(data)
+    // fmt.Println(data)
 }

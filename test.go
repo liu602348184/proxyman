@@ -1,12 +1,13 @@
 package main
 
 import (
-    // "fmt"
+    "fmt"
     // "net"
     "log"
     // "reflect"
     // "syscall"
     "./network"
+    "sync"
     // "golang.org/x/net/bpf"
     // "encoding/binary"
 )
@@ -48,10 +49,33 @@ func main()  {
         log.Fatal(err)
     }
 
-    for {
-        a := <-*ipchan
-        test := []byte{0x00, 0x01}
-        a.Send(test)
-        // fmt.Println(a)
+    var wg sync.WaitGroup
+    wg.Add(1)
+
+    go func() {
+        for {
+            a := <-*ipchan
+            // test := []byte{0x00, 0x01}
+            // a.Send(test)
+            fmt.Println(a.SceIP)
+        }
+    }()
+
+    arp := network.ARP{}
+    arpchan, err2 := arp.Listen()
+    
+    if err != nil {
+        log.Fatal(err2)
     }
+
+    go func() {
+        for {
+            a2 := <-*arpchan
+            // test := []byte{0x00, 0x01}
+            // a.Send(test)
+            fmt.Println(a2.SceEthAddr)
+        }
+    }()
+
+    wg.Wait()
 }
