@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-12 04:27:31
+* @Last Modified time: 2018-08-12 19:28:24
 */
 /**
 RFC-791
@@ -29,6 +29,9 @@ import(
     _"fmt"
     "errors"
     "syscall"
+    // "reflect"
+    "net"
+    // "unsafe"
     "encoding/binary"
 )
 //前三比特已经废弃最后一位设置为0
@@ -69,6 +72,81 @@ type IPV4 struct {
     Options []byte
     Payload []byte
     Ethernet Ethernet
+}
+
+var internal_ip [4]byte
+var extranet_ip [4]byte
+var mask [4]byte
+var broadcast [4]byte
+var netaddr [4]byte
+
+func init() {
+    ifi, ifi_err := GetInterFace()
+    
+    if ifi_err != nil {
+        log.Fatal(ifi_err)
+    }
+
+    addrs, addrs_err := ifi.Addrs()
+
+    if addrs_err != nil {
+        log.Fatal(addrs_err)
+    }
+
+    for _, addr := range addrs {
+        ipaddr, ok := addr.(*net.IPNet)
+
+        if !ok {
+            continue
+        }
+        // log.Println(len(ipaddr.IP))
+        ip := ipaddr.IP.To4()
+        // log.Println(ipaddr.Mask.To4())
+        var ip_tmp [4]byte
+
+        if ip != nil {
+            copy(ip_tmp[:], ip)
+        }
+
+        if ip_tmp[0] == 10 || ip_tmp[0] == 172 || ip_tmp[0] == 192 {
+            copy(internal_ip[:], ip_tmp[:])
+            copy(mask[:], ipaddr.Mask)
+        } else {
+            copy(extranet_ip[:], ip_tmp[:])
+        }
+    }
+    setBroadcast()
+    // log.Println(mask)
+}
+
+func setBroadcast() {
+    ip_num := binary.BigEndian.Uint32(internal_ip[:])
+    mask_num := binary.BigEndian.Uint32(mask[:])
+
+    if ip_num == 0 && mask_num == 0 {
+        return
+    }
+
+    var na [4]byte
+    var bc [4]byte
+    for i, b := range internal_ip {
+        na[i] = mask[i] & b
+        bc[i] = (255 - mask[i]) + na[i]
+    }
+
+    copy(netaddr[:], na[:])
+    copy(broadcast[:], bc[:])
+    // log.Println(netaddr)
+    // log.Println(broadcast)
+    // log.Println(mask)
+}
+
+func GetBroadcast() [4]byte {
+    return broadcast
+}
+
+func GetNetAddr() [4]byte {
+    return netaddr
 }
 
 func (ipv4 IPV4) Listen() (*chan IPV4, error){
@@ -182,7 +260,6 @@ func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
     // fmt.Println(ip4.Payload)
     return ip4, nil
 }
-
 func checksumFunc(header []byte)  uint16 {
     var u16 [2]byte
     var sum uint32

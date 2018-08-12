@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-06 23:47:01
+* @Last Modified time: 2018-08-12 16:48:52
 */
 package network
 /**
@@ -12,6 +12,7 @@ import (
     "net"
     "fmt"
     "log"
+    // "reflect"
     "encoding/binary"
 )
 
@@ -77,6 +78,18 @@ func GetMTU(ethAtp string) (int, error) {
     
     return ifi.MTU, nil   
 }
+
+func GetInterFace() (*net.Interface, error) {
+    ifi, err := net.InterfaceByName("eth0")
+
+    if err != nil {
+        log.Println(err)
+        return nil, err
+    }
+
+    return ifi, nil
+}
+
 //前导字节和尾部crc签名将被过滤
 func (e Ethernet) Format(b []byte) (Ethernet){
     eth := Ethernet{
