@@ -42,8 +42,8 @@ func main()  {
     //     fmt.Println(a.Payload)
     // }
 
-    ip := network.IPV4{}
-    ipchan, err := ip.Listen()
+    tcp := network.TCP{}
+    tcpchan, err := tcp.Listen()
     
     if err != nil {
         log.Fatal(err)
@@ -54,10 +54,12 @@ func main()  {
 
     go func() {
         for {
-            a := <-*ipchan
+            a := <-*tcpchan
             // test := []byte{0x00, 0x01}
             // a.Send(test)
-            fmt.Println(a.SceIP)
+            fmt.Println("bytes")
+            // _ = a
+            fmt.Println(a.ToBytes())
         }
     }()
 
@@ -73,7 +75,8 @@ func main()  {
             a2 := <-*arpchan
             // test := []byte{0x00, 0x01}
             // a.Send(test)
-            fmt.Println(a2.SceEthAddr)
+            _ = a2
+            // fmt.Println(a2.SceEthAddr)
         }
     }()
 
