@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-31 22:53:44
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-26 21:32:33
+* @Last Modified time: 2018-08-27 00:58:40
 */
 /**
 RFC793
@@ -235,17 +235,17 @@ func (tcp *TCP) ToBytes() []byte {
     b = append(b, checksum[:]...)
     b = append(b, urg_pointer[:]...)
     b = append(b, opts[:]...)
+    b = append(b, tcp.Payload...)
     var cksum_b [2]byte
     cksum := tcp.TcpCksum(b)
     binary.BigEndian.PutUint16(cksum_b[:], cksum)
     b[16] = cksum_b[0]
     b[17] = cksum_b[1]
-    b = append(b, tcp.Payload...)
 
     return b
 }
 
-func (tcp *TCP) TcpCksum(tcpheader []byte) uint16 {
+func (tcp *TCP) TcpCksum(tcpdata []byte) uint16 {
     var pseudoheader [12]byte
     sceip := tcp.IPV4.SceIP
     dstip := tcp.IPV4.DstIP
@@ -260,10 +260,9 @@ func (tcp *TCP) TcpCksum(tcpheader []byte) uint16 {
     pseudoheader[10] = tcplenbytes[0]
     pseudoheader[11] = tcplenbytes[1]
     calccksum := ChecksumFunc(0, pseudoheader[:])
-    // tcpheader := tcp.IPV4.Payload[0: tcp.Hlen]
-    tcpheader[16]  = 0
-    tcpheader[17]  = 0
-    calccksum = ChecksumFunc(uint32(^calccksum), tcpheader)
+    tcpdata[16]  = 0
+    tcpdata[17]  = 0
+    calccksum = ChecksumFunc(uint32(^calccksum), tcpdata)
     // tcp.Checksum = calccksum
     return  calccksum
     // return tcplenbytes
@@ -322,7 +321,7 @@ func getOptBytes(opts []Option) []byte {
     return bytes
 }
 
-func (tcp TCP) Send(payload []byte) {
+func (tcp *TCP) Send(payload []byte) {
     copy(tcp.Payload[:], payload[:])
     tcp.IPV4.Send(tcp.ToBytes())
 }

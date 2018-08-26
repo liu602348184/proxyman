@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-21 03:03:28
+* @Last Modified time: 2018-08-26 23:00:43
 */
 package network
 /**
@@ -133,7 +133,7 @@ func (e Ethernet) Send(payload []byte) {
     var fcs [4]byte
     // crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli))
     binary.LittleEndian.PutUint32(fcs[:], crc32.Checksum(data, crc32.MakeTable(crc32.IEEE)))
-    log.Println(fcs)
+    // log.Println(fcs)
     // data = append(data, fcs)
     // fcs := reverse_table_crc(data)
     // eth_len := MTU - len(data)
