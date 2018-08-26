@@ -2,14 +2,15 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-12 04:18:45
+* @Last Modified time: 2018-08-20 22:47:28
 */
 package network
 
 import(
     // "errors"
-    // "fmt"
+    "fmt"
     // "net"
+    // "reflect"
     "syscall"
     // "binary.BigEndian"
 )
@@ -18,18 +19,22 @@ const(
     TYPE_IP uint16  = 0x0800
 )
 
-type Raw struct {
+var FD int
 
+type Raw struct {
+    Fd int
 }
 
 func (r *Raw) Listen() (*chan []byte,   error ){
     fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(Htons(uint16(syscall.ETH_P_ALL)))) 
-
+    FD = fd
     if err != nil {
         return nil, err
     }
 
+    r.Fd = fd
     bytes := make(chan []byte, 1514)
+    
     go func() {
         defer syscall.Close(fd)
 
@@ -48,6 +53,23 @@ func (r *Raw) Listen() (*chan []byte,   error ){
 
 func  Htons(i uint16) uint16 {
     return (i<<8)&0xff00 | i>>8
+}
+
+func (r *Raw) Send(b []byte,  eth Ethernet) {
+    var addr [8]byte
+    copy(addr[:], eth.DstMac)
+
+    fmt.Println("-----------------------------")
+    // fmt.Println(b)
+
+    to := &syscall.SockaddrLinklayer {
+        Ifindex: IFI.Index,
+        Halen: 6,
+        Addr: addr,
+        Protocol: Htons(eth.EtherType),
+    }
+
+    syscall.Sendto(r.Fd, b, 0, to)
 }
 
 func Ntohs() {

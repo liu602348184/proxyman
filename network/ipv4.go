@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-29 18:12:07
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-12 19:28:24
+* @Last Modified time: 2018-08-26 19:15:21
 */
 /**
 RFC-791
@@ -71,7 +71,7 @@ type IPV4 struct {
     DstIP [4]byte
     Options []byte
     Payload []byte
-    Ethernet Ethernet
+    Ethernet *Ethernet
 }
 
 var internal_ip [4]byte
@@ -165,9 +165,11 @@ func (ipv4 IPV4) Listen() (*chan IPV4, error){
             if syscall.ETH_P_IP != eth.EtherType {
                 continue
             }
-
             ipdata, ferr := ipv4.Format(eth.Payload)
-            ipdata.Ethernet = eth
+            ipdata.Ethernet = &eth
+            // log.Println("payload")
+            // log.Println(ipdata.SceIP)
+            // log.Println(ipdata.DstIP)
 
             if ferr != nil {
                 log.Println(ferr)
@@ -230,7 +232,7 @@ func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
 
     checksum := binary.BigEndian.Uint16(b[10: 12])
     hlen = hlen * 4
-    result := checksumFunc(b[0: hlen])
+    result := ChecksumFunc(0, b[0: hlen])
 
     if result != 0 {
         return IPV4{}, errors.New("bad ip package")
@@ -260,9 +262,9 @@ func (ipv4 IPV4) Format(b []byte)  (IPV4, error){
     // fmt.Println(ip4.Payload)
     return ip4, nil
 }
-func checksumFunc(header []byte)  uint16 {
+func ChecksumFunc(initcksum uint32, header []byte)  uint16 {
     var u16 [2]byte
-    var sum uint32
+    sum := initcksum
    // header[10] = 0;
    // header[11] = 0;
     for idx, value := range header {
@@ -334,7 +336,8 @@ func (ipv4 IPV4) ToBytes() ([]byte){
     binary.BigEndian.PutUint16(flag_offset_b[:], flag_offset)
     ttl := byte(ipv4.TTL)
     protocol := byte(ipv4.Protocol)
-    checksum := ipv4.Checksum
+    // checksum := ipv4.Checksum
+    checksum := uint16(0)
     var checksum_b [2]byte
     binary.BigEndian.PutUint16(checksum_b[:], checksum) 
     sceip := ipv4.SceIP
@@ -351,12 +354,21 @@ func (ipv4 IPV4) ToBytes() ([]byte){
     bytes = append(bytes, sceip[:]...)
     bytes = append(bytes, dstip[:]...)
     bytes = append(bytes, ipv4.Options[:]...)
-
+    bytes = append(bytes, ipv4.Payload[:]...)
+    //if  ip header has been changed
+    checksum = ChecksumFunc(0, bytes[0: ipv4.HeaderLen])
+    binary.BigEndian.PutUint16(checksum_b[:], checksum) 
+    bytes[10] = checksum_b[0]
+    bytes[11] = checksum_b[1]
+    
     return bytes
 }
 
 func (ipv4 IPV4) Send(payload []byte) {
+    copy(ipv4.Payload[:], payload[:])
     data := ipv4.ToBytes()
+    // log.Println(payload)
+    // log.Println(data)
     ipv4.Ethernet.Send(data)
     // fmt.Println(data)
 }

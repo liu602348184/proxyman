@@ -2,7 +2,7 @@
 * @Author: liuyujie
 * @Date:   2018-07-31 22:53:44
 * @Last Modified by:   liuyujie
-* @Last Modified time: 2018-08-13 02:07:37
+* @Last Modified time: 2018-08-26 21:32:33
 */
 /**
 RFC793
@@ -17,7 +17,7 @@ package network
 
 import (
     "log"
-    "fmt"
+    // "fmt"
     // "errors"
     "encoding/binary"
 )
@@ -51,7 +51,7 @@ type TCP struct {
     UrgentPointer uint16
     Options []Option
     Payload []byte
-    IPV4 IPV4
+    IPV4 *IPV4
 }
 
 func (tcp TCP) Listen() (*chan TCP, error) {
@@ -73,11 +73,13 @@ func (tcp TCP) Listen() (*chan TCP, error) {
             }
 
             tcpdata, err := tcp.Format(ip4.Payload)
-            fmt.Println("payload")
-            fmt.Println(ip4.Payload)
+            // fmt.Println("payload")
+            // fmt.Println(ip4.Payload)
             if err != nil {
                 log.Println(err)
             }
+
+            tcpdata.IPV4 = &ip4
             // log.Println(tcpdata.Payload)
             tcpchan <- tcpdata
         }
@@ -151,17 +153,19 @@ func(tcp TCP) Format (b []byte)  (TCP, error)  {
     return tcpdata, nil
 }
 
-func getOptions(b []byte) ([]Option, error) {
-    // log.Println(b)
+func getOptions(opt []byte) ([]Option, error) {
+    // opt = []byte{1, 1, 8, 10, 193, 34, 128, 208, 0, 82, 62, 56}
+    // log.Println(opt)
+    b := opt
     var options []Option
     var option Option
     l := uint8(len(b))
     var length uint8
-
+    // log.Println(opt)
     for {
         kind := uint8(b[0])
         b = b[1:]
-
+        // log.Println(kind)
         if kind != 0 && kind != 1 {
             length = uint8(b[0])
             b = b[1:]
@@ -171,6 +175,7 @@ func getOptions(b []byte) ([]Option, error) {
 
             if l == length {
                 value = b[0:]
+                b = []byte{}
             } else {
                 value = b[0:length]
                 b = b[length: ]
@@ -190,14 +195,16 @@ func getOptions(b []byte) ([]Option, error) {
 
         options = append(options, option)
 
-        if l == length {
+        if len(b) == 0 {
             break
         }
     }
     return options, nil
 }
 
-func (tcp TCP) ToBytes() []byte {
+func (tcp *TCP) ToBytes() []byte {
+    // log.Println(tcp.Checksum)
+    // log.Println(tcp.Checksum)
     var sceport [2]byte
     binary.BigEndian.PutUint16(sceport[:], tcp.ScePort)
     var dstport [2]byte
@@ -228,8 +235,38 @@ func (tcp TCP) ToBytes() []byte {
     b = append(b, checksum[:]...)
     b = append(b, urg_pointer[:]...)
     b = append(b, opts[:]...)
+    var cksum_b [2]byte
+    cksum := tcp.TcpCksum(b)
+    binary.BigEndian.PutUint16(cksum_b[:], cksum)
+    b[16] = cksum_b[0]
+    b[17] = cksum_b[1]
     b = append(b, tcp.Payload...)
+
     return b
+}
+
+func (tcp *TCP) TcpCksum(tcpheader []byte) uint16 {
+    var pseudoheader [12]byte
+    sceip := tcp.IPV4.SceIP
+    dstip := tcp.IPV4.DstIP
+    copy(pseudoheader[0: 4], sceip[:])
+    copy(pseudoheader[4: 8], dstip[:])
+    pseudoheader[8] = 0
+    pseudoheader[9] = 6
+
+    tcplen := uint16(len(tcp.IPV4.Payload))
+    var tcplenbytes [2]byte 
+    binary.BigEndian.PutUint16(tcplenbytes[:], tcplen)
+    pseudoheader[10] = tcplenbytes[0]
+    pseudoheader[11] = tcplenbytes[1]
+    calccksum := ChecksumFunc(0, pseudoheader[:])
+    // tcpheader := tcp.IPV4.Payload[0: tcp.Hlen]
+    tcpheader[16]  = 0
+    tcpheader[17]  = 0
+    calccksum = ChecksumFunc(uint32(^calccksum), tcpheader)
+    // tcp.Checksum = calccksum
+    return  calccksum
+    // return tcplenbytes
 }
 
 func getCtrBytes(ctr Control) byte {
@@ -286,5 +323,6 @@ func getOptBytes(opts []Option) []byte {
 }
 
 func (tcp TCP) Send(payload []byte) {
-
+    copy(tcp.Payload[:], payload[:])
+    tcp.IPV4.Send(tcp.ToBytes())
 }
